@@ -1,0 +1,600 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>NEW REPORT</title>
+    <script src="https://unpkg.com/vue@next"></script>
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/element-plus/dist/index.css"
+    />
+    <script src="https://unpkg.com/element-plus"></script>
+
+    <style>
+      @import url("https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai&family=IBM+Plex+Sans+Thai+Looped:wght@300;400;500;600&display=swap");
+
+      body {
+        font-size: 14px !important;
+        font-family: "IBM Plex Sans Thai", sans-serif;
+        width: 1300px;
+        max-width: 1300px;
+        min-width: 1300px;
+        font-weight: 500 !important;
+      }
+
+      #table {
+        border-collapse: collapse;
+        width: 100%;
+      }
+
+      #table td,
+      #table th {
+        border: 1px solid #ddd;
+        padding: 2px;
+      }
+
+      #table tr:nth-child(even) {
+        background-color: #f2f2f2;
+      }
+
+      #table tr:hover {
+        background-color: #ddd;
+      }
+
+      #table th {
+        font-weight: bold;
+        text-align: center;
+        background-color: rgb(245, 245, 245);
+        color: #3a3a3a;
+      }
+
+      .text-right {
+        text-align: end;
+      }
+
+      .text-center {
+        text-align: center;
+      }
+
+      .text-danger {
+        color: #f56c6c;
+      }
+
+      .text-success {
+        color: #67c23a;
+      }
+
+      .senior {
+        background-color: #fff5b6 !important;
+      }
+      .txt_last {
+        text-decoration: underline;
+      }
+    </style>
+  </head>
+
+  <body>
+    <div id="app" class="container">
+      <el-row>
+        <el-col :span="22" :offset="0">
+          <div v-if="games.data" class="block" style="margin-bottom: 0.5rem">
+            <div style="margin-bottom: 0.5rem">
+              <div style="margin-bottom: 0.5rem; display: flex; width: 450px">
+                <el-date-picker
+                  v-model="datepicker"
+                  type="daterange"
+                  range-separator="-"
+                  start-placeholder="Start date"
+                  end-placeholder="End date"
+                  align="right"
+                  placeholder="เลือกช่วงวันที่"
+                >
+                </el-date-picker>
+
+                <el-row class="mb-4" style="margin-left: 0.5rem">
+                  <el-button @click="submitReport()" type="primary"
+                    >ยืนยัน</el-button
+                  >
+                </el-row>
+              </div>
+            </div>
+
+            <el-checkbox
+              id="status_all_live"
+              class="input-checkbox"
+              v-model="games.status"
+              @change="handleCheckAllChange"
+            >
+              ทั้งหมด
+            </el-checkbox>
+
+            <div style="margin-bottom: 0.5rem">
+              <el-checkbox
+                style="width: 60px"
+                v-for="value in games.data"
+                :key="value.id"
+                :id="'status_' + value.id"
+                class="input-checkbox"
+                v-model="value.status"
+                @change="handleCheckedGamesChange"
+              >
+                {{value.game_Upper}}
+              </el-checkbox>
+            </div>
+          </div>
+
+          <div v-if="tableData.length != 0">
+            <table id="table" style="margin-bottom: 0.5rem">
+              <tr>
+                <th rowspan="2">#</th>
+                <th rowspan="2">Username</th>
+                <th rowspan="2">Turnover</th>
+                <th rowspan="2">Valid Amount</th>
+                <th rowspan="2">Stake Count</th>
+                <th rowspan="2">Players</th>
+                <th v-if="member == 1" colspan="3">Member</th>
+                <th v-if="agent == 1" colspan="3">Agent</th>
+                <th v-if="master == 1" colspan="3">Master</th>
+                <th v-if="senior == 1" colspan="3" class="senior">Senior</th>
+                <th v-if="sub_company == 1" colspan="3">Subcompany</th>
+                <th v-if="company == 1" colspan="3">Company</th>
+              </tr>
+
+              <tr>
+                <th v-if="member == 1">W/L</th>
+                <th v-if="member == 1">Com</th>
+                <th v-if="member == 1">Total</th>
+
+                <th v-if="agent == 1">W/L</th>
+                <th v-if="agent == 1">Com</th>
+                <th v-if="agent == 1">Total</th>
+
+                <th v-if="master == 1">W/L</th>
+                <th v-if="master == 1">Com</th>
+                <th v-if="master == 1">Total</th>
+
+                <th v-if="senior == 1" class="senior">W/L</th>
+                <th v-if="senior == 1" class="senior">Com</th>
+                <th v-if="senior == 1" class="senior">Total</th>
+
+                <th v-if="sub_company == 1">W/L</th>
+                <th v-if="sub_company == 1">Com</th>
+                <th v-if="sub_company == 1">Total</th>
+
+                <th v-if="company == 1">W/L</th>
+                <th v-if="company == 1">Com</th>
+                <th v-if="company == 1">Total</th>
+              </tr>
+
+              <tr v-for="(data, index) in tableData" :key="data.id">
+                <td class="text-center">{{ offset + (index + 1) }}</td>
+                <td>{{data.username}}</td>
+                <td class="text-right">{{formatMoney(data.turnover)}}</td>
+                <td class="text-right">{{formatMoney(data.valid_amount_)}}</td>
+                <td class="text-right">{{formatMemer(data.stake_count)}}</td>
+                <td class="text-right">{{formatMemer(data.players)}}</td>
+
+                <td
+                  v-if="member == 1"
+                  class="text-right"
+                  :class="[data.member.wl < 0 ? 'text-danger' : 'text-success']"
+                >
+                  <div
+                    style="cursor: pointer"
+                    v-if="checkToFixed2(data.member.wl) > 1"
+                    @click="data.member.wl_show = !data.member.wl_show"
+                  >
+                    <span v-if="data.member.wl_show">
+                      {{data.member.wl_2.split(".")[0]}}.{{data.member.wl_2.split(".")[1].slice(0,1)}}<span
+                        class="txt_last"
+                        >{{data.member.wl_2.split(".")[1].slice(1,2)}}</span
+                      >
+                    </span>
+                    <span v-else>{{formatMoney(data.member.wl)}}</span>
+                  </div>
+                  <div v-else>
+                    <span>{{data.member.wl_2}}</span>
+                  </div>
+                </td>
+                <td v-if="member == 1" class="text-right">
+                  <div
+                    style="cursor: pointer"
+                    v-if="checkToFixed2(data.member.com) > 1"
+                    @click="data.member.com_show = !data.member.com_show"
+                  >
+                    <span v-if="data.member.com_show">
+                      {{data.member.com_2.split(".")[0]}}.{{data.member.com_2.split(".")[1].slice(0,1)}}<span
+                        class="txt_last"
+                        >{{data.member.com_2.split(".")[1].slice(1,2)}}</span
+                      >
+                    </span>
+                    <span v-else>{{formatMoney(data.member.com)}}</span>
+                  </div>
+                  <div v-else>
+                    <span>{{data.member.com_2}}</span>
+                  </div>
+                </td>
+                <td
+                  v-if="member == 1"
+                  class="text-right"
+                  :class="[data.member.total < 0 ? 'text-danger' : 'text-success']"
+                >
+                  <div
+                    style="cursor: pointer"
+                    v-if="checkToFixed2(data.member.total) > 1"
+                    @click="data.member.total_show = !data.member.total_show"
+                  >
+                    <span v-if="data.member.total_show">
+                      {{data.member.total_2.split(".")[0]}}.{{data.member.total_2.split(".")[1].slice(0,1)}}<span
+                        class="txt_last"
+                        >{{data.member.total_2.split(".")[1].slice(1,2)}}</span
+                      >
+                    </span>
+                    <span v-else>{{formatMoney(data.member.total)}}</span>
+                  </div>
+                  <div v-else>
+                    <span>{{data.member.total_2}}</span>
+                  </div>
+                </td>
+
+                <td
+                  v-if="agent == 1"
+                  class="text-right"
+                  :class="[data.agent.wl < 0 ? 'text-danger' : 'text-success']"
+                >
+                  <div
+                    style="cursor: pointer"
+                    v-if="checkToFixed2(data.agent.wl) > 1"
+                    @click="data.agent.wl_show = !data.agent.wl_show"
+                  >
+                    <span v-if="data.agent.wl_show">
+                      {{data.agent.wl_2.split(".")[0]}}.{{data.agent.wl_2.split(".")[1].slice(0,1)}}<span
+                        class="txt_last"
+                        >{{data.agent.wl_2.split(".")[1].slice(1,2)}}</span
+                      >
+                    </span>
+                    <span v-else>{{formatMoney(data.agent.wl)}}</span>
+                  </div>
+                  <div v-else>
+                    <span>{{data.agent.wl_2}}</span>
+                  </div>
+                </td>
+                <td v-if="agent == 1" class="text-right">
+                  <div
+                    style="cursor: pointer"
+                    v-if="checkToFixed2(data.agent.com) > 1"
+                    @click="data.agent.com_show = !data.agent.com_show"
+                  >
+                    <span v-if="data.agent.com_show">
+                      {{data.agent.com_2.split(".")[0]}}.{{data.agent.com_2.split(".")[1].slice(0,1)}}<span
+                        class="txt_last"
+                        >{{data.agent.com_2.split(".")[1].slice(1,2)}}</span
+                      >
+                    </span>
+                    <span v-else>{{formatMoney(data.agent.com)}}</span>
+                  </div>
+                  <div v-else>
+                    <span>{{data.agent.com_2}}</span>
+                  </div>
+                </td>
+                <td
+                  v-if="agent == 1"
+                  class="text-right"
+                  :class="[data.agent.total < 0 ? 'text-danger' : 'text-success']"
+                >
+                  <div
+                    style="cursor: pointer"
+                    v-if="checkToFixed2(data.agent.total) > 1"
+                    @click="data.agent.total_show = !data.agent.total_show"
+                  >
+                    <span v-if="data.agent.total_show">
+                      {{data.agent.total_2.split(".")[0]}}.{{data.agent.total_2.split(".")[1].slice(0,1)}}<span
+                        class="txt_last"
+                        >{{data.agent.total_2.split(".")[1].slice(1,2)}}</span
+                      >
+                    </span>
+                    <span v-else>{{formatMoney(data.agent.total)}}</span>
+                  </div>
+                  <div v-else>
+                    <span>{{data.agent.total_2}}</span>
+                  </div>
+                </td>
+
+                <td
+                  v-if="master == 1"
+                  class="text-right"
+                  :class="[data.master.wl < 0 ? 'text-danger' : 'text-success']"
+                >
+                  <div
+                    style="cursor: pointer"
+                    v-if="checkToFixed2(data.master.wl) > 1"
+                    @click="data.master.wl_show = !data.master.wl_show"
+                  >
+                    <span v-if="data.master.wl_show">
+                      {{data.master.wl_2.split(".")[0]}}.{{data.master.wl_2.split(".")[1].slice(0,1)}}<span
+                        class="txt_last"
+                        >{{data.master.wl_2.split(".")[1].slice(1,2)}}</span
+                      >
+                    </span>
+                    <span v-else>{{formatMoney(data.master.wl)}}</span>
+                  </div>
+                  <div v-else>
+                    <span>{{data.master.wl_2}}</span>
+                  </div>
+                </td>
+                <td v-if="master == 1" class="text-right">
+                  <div
+                    style="cursor: pointer"
+                    v-if="checkToFixed2(data.master.com) > 1"
+                    @click="data.master.com_show = !data.master.com_show"
+                  >
+                    <span v-if="data.master.com_show">
+                      {{data.master.com_2.split(".")[0]}}.{{data.master.com_2.split(".")[1].slice(0,1)}}<span
+                        class="txt_last"
+                        >{{data.master.com_2.split(".")[1].slice(1,2)}}</span
+                      >
+                    </span>
+                    <span v-else>{{formatMoney(data.master.com)}}</span>
+                  </div>
+                  <div v-else>
+                    <span>{{data.master.com_2}}</span>
+                  </div>
+                </td>
+                <td
+                  v-if="master == 1"
+                  class="text-right"
+                  :class="[data.master.total < 0 ? 'text-danger' : 'text-success']"
+                >
+                  <div
+                    style="cursor: pointer"
+                    v-if="checkToFixed2(data.master.total) > 1"
+                    @click="data.master.total_show = !data.master.total_show"
+                  >
+                    <span v-if="data.master.total_show">
+                      {{data.master.total_2.split(".")[0]}}.{{data.master.total_2.split(".")[1].slice(0,1)}}<span
+                        class="txt_last"
+                        >{{data.master.total_2.split(".")[1].slice(1,2)}}</span
+                      >
+                    </span>
+                    <span v-else>{{formatMoney(data.master.total)}}</span>
+                  </div>
+                  <div v-else>
+                    <span>{{data.master.total_2}}</span>
+                  </div>
+                </td>
+
+                <td
+                  v-if="senior == 1"
+                  class="text-right senior"
+                  :class="[data.senior.wl < 0 ? 'text-danger' : 'text-success']"
+                >
+                  <div
+                    style="cursor: pointer"
+                    v-if="checkToFixed2(data.senior.wl) > 1"
+                    @click="data.senior.wl_show = !data.senior.wl_show"
+                  >
+                    <span v-if="data.senior.wl_show">
+                      {{data.senior.wl_2.split(".")[0]}}.{{data.senior.wl_2.split(".")[1].slice(0,1)}}<span
+                        class="txt_last"
+                        >{{data.senior.wl_2.split(".")[1].slice(1,2)}}</span
+                      >
+                    </span>
+                    <span v-else>{{formatMoney(data.senior.wl)}}</span>
+                  </div>
+                  <div v-else>
+                    <span>{{data.senior.wl_2}}</span>
+                  </div>
+                </td>
+                <td v-if="senior == 1" class="text-right senior">
+                  <div
+                    style="cursor: pointer"
+                    v-if="checkToFixed2(data.senior.com) > 1"
+                    @click="data.senior.com_show = !data.senior.com_show"
+                  >
+                    <span v-if="data.senior.com_show">
+                      {{data.senior.com_2.split(".")[0]}}.{{data.senior.com_2.split(".")[1].slice(0,1)}}<span
+                        class="txt_last"
+                        >{{data.senior.com_2.split(".")[1].slice(1,2)}}</span
+                      >
+                    </span>
+                    <span v-else>{{formatMoney(data.senior.com)}}</span>
+                  </div>
+                  <div v-else>
+                    <span>{{data.senior.com_2}}</span>
+                  </div>
+                </td>
+                <td
+                  v-if="senior == 1"
+                  class="text-right senior"
+                  :class="[data.senior.total < 0 ? 'text-danger' : 'text-success']"
+                >
+                  <div
+                    style="cursor: pointer"
+                    v-if="checkToFixed2(data.senior.total) > 1"
+                    @click="data.senior.total_show = !data.senior.total_show"
+                  >
+                    <span v-if="data.senior.total_show">
+                      {{data.senior.total_2.split(".")[0]}}.{{data.senior.total_2.split(".")[1].slice(0,1)}}<span
+                        class="txt_last"
+                        >{{data.senior.total_2.split(".")[1].slice(1,2)}}</span
+                      >
+                    </span>
+                    <span v-else>{{formatMoney(data.senior.total)}}</span>
+                  </div>
+                  <div v-else>
+                    <span>{{data.senior.total_2}}</span>
+                  </div>
+                </td>
+
+                <td
+                  v-if="sub_company == 1"
+                  class="text-right"
+                  :class="[data.sub_company.wl < 0 ? 'text-danger' : 'text-success']"
+                >
+                  <div
+                    style="cursor: pointer"
+                    v-if="checkToFixed2(data.sub_company.wl) > 1"
+                    @click="data.sub_company.wl_show = !data.sub_company.wl_show"
+                  >
+                    <span v-if="data.sub_company.wl_show">
+                      {{data.sub_company.wl_2.split(".")[0]}}.{{data.sub_company.wl_2.split(".")[1].slice(0,1)}}<span
+                        class="txt_last"
+                        >{{data.sub_company.wl_2.split(".")[1].slice(1,2)}}</span
+                      >
+                    </span>
+                    <span v-else>{{formatMoney(data.sub_company.wl)}}</span>
+                  </div>
+                  <div v-else>
+                    <span>{{data.sub_company.wl_2}}</span>
+                  </div>
+                </td>
+                <td v-if="sub_company == 1" class="text-right">
+                  <div
+                    style="cursor: pointer"
+                    v-if="checkToFixed2(data.sub_company.com) > 1"
+                    @click="data.sub_company.com_show = !data.sub_company.com_show"
+                  >
+                    <span v-if="data.sub_company.com_show">
+                      {{data.sub_company.com_2.split(".")[0]}}.{{data.sub_company.com_2.split(".")[1].slice(0,1)}}<span
+                        class="txt_last"
+                        >{{data.sub_company.com_2.split(".")[1].slice(1,2)}}</span
+                      >
+                    </span>
+                    <span v-else>{{formatMoney(data.sub_company.com)}}</span>
+                  </div>
+                  <div v-else>
+                    <span>{{data.sub_company.com_2}}</span>
+                  </div>
+                </td>
+                <td
+                  v-if="sub_company == 1"
+                  class="text-right"
+                  :class="[data.sub_company.total < 0 ? 'text-danger' : 'text-success']"
+                >
+                  <div
+                    style="cursor: pointer"
+                    v-if="checkToFixed2(data.sub_company.total) > 1"
+                    @click="data.sub_company.total_show = !data.sub_company.total_show"
+                  >
+                    <span v-if="data.sub_company.total_show">
+                      {{data.sub_company.total_2.split(".")[0]}}.{{data.sub_company.total_2.split(".")[1].slice(0,1)}}<span
+                        class="txt_last"
+                        >{{data.sub_company.total_2.split(".")[1].slice(1,2)}}</span
+                      >
+                    </span>
+                    <span v-else>{{formatMoney(data.sub_company.total)}}</span>
+                  </div>
+                  <div v-else>
+                    <span>{{data.sub_company.total_2}}</span>
+                  </div>
+                </td>
+
+                <td
+                  v-if="company == 1"
+                  class="text-right"
+                  :class="[data.company.wl < 0 ? 'text-danger' : 'text-success']"
+                >
+                  <div
+                    style="cursor: pointer"
+                    v-if="checkToFixed2(data.company.wl) > 1"
+                    @click="data.company.wl_show = !data.company.wl_show"
+                  >
+                    <span v-if="data.company.wl_show">
+                      {{data.company.wl_2.split(".")[0]}}.{{data.company.wl_2.split(".")[1].slice(0,1)}}<span
+                        class="txt_last"
+                        >{{data.company.wl_2.split(".")[1].slice(1,2)}}</span
+                      >
+                    </span>
+                    <span v-else>{{formatMoney(data.company.wl)}}</span>
+                  </div>
+                  <div v-else>
+                    <span>{{data.company.wl_2}}</span>
+                  </div>
+                </td>
+                <td v-if="company == 1" class="text-right">
+                  <div
+                    style="cursor: pointer"
+                    v-if="checkToFixed2(data.company.com) > 1"
+                    @click="data.company.com_show = !data.company.com_show"
+                  >
+                    <span v-if="data.company.com_show">
+                      {{data.company.com_2.split(".")[0]}}.{{data.company.com_2.split(".")[1].slice(0,1)}}<span
+                        class="txt_last"
+                        >{{data.company.com_2.split(".")[1].slice(1,2)}}</span
+                      >
+                    </span>
+                    <span v-else>{{formatMoney(data.company.com)}}</span>
+                  </div>
+                  <div v-else>
+                    <span>{{data.company.com_2}}</span>
+                  </div>
+                </td>
+                <td
+                  v-if="company == 1"
+                  class="text-right"
+                  :class="[data.company.total < 0 ? 'text-danger' : 'text-success']"
+                >
+                  <div
+                    style="cursor: pointer"
+                    v-if="checkToFixed2(data.company.total) > 1"
+                    @click="data.company.total_show = !data.company.total_show"
+                  >
+                    <span v-if="data.company.total_show">
+                      {{data.company.total_2.split(".")[0]}}.{{data.company.total_2.split(".")[1].slice(0,1)}}<span
+                        class="txt_last"
+                        >{{data.company.total_2.split(".")[1].slice(1,2)}}</span
+                      >
+                    </span>
+                    <span v-else>{{formatMoney(data.company.total)}}</span>
+                  </div>
+                  <div v-else>
+                    <span>{{data.company.total_2}}</span>
+                  </div>
+                </td>
+              </tr>
+            </table>
+
+            <div
+              class="demo-pagination-block"
+              style="display: flex; margin-bottom: 0.5rem; justify-content: end"
+            >
+              <div
+                style="margin-right: 0.5rem; display: flex; align-items: center"
+              >
+                <span v-if="tableData.length">
+                  Show {{ (currentPage - 1) * sizeTable + 1 }} - {{ (currentPage
+                  - 1) * sizeTable + tableData.length }} |</span
+                >
+                Total {{ total_item }} - Record
+              </div>
+
+              <select
+                class="select"
+                v-model="sizeTable"
+                @change="sizeTableChange"
+              >
+                <option v-for="data in sizePage" :key="data" :value="data">
+                  {{ data }}
+                </option>
+              </select>
+
+              <el-pagination
+                :currentPage="currentPage"
+                :page-size="sizeTable"
+                layout="prev, pager, next"
+                background
+                :total="total_item"
+                @current-change="handleCurrentChange"
+              />
+            </div>
+          </div>
+        </el-col>
+      </el-row>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.22.1/moment.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/0.27.2/axios.min.js"></script>
+    <script src="src/app.js"></script>
+  </body>
+</html>
